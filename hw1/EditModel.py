@@ -36,7 +36,7 @@ class EditModel(object):
       for line in f:
         rule, countString = line.split("\t")
         self.editCounts[rule] = int(countString)
-    
+
   def deleteEdits(self, word):
     """Returns a list of edits of 1-delete distance words and rules used to generate them."""
     if len(word) <= 0:
@@ -46,24 +46,35 @@ class EditModel(object):
     ret = []
     for i in xrange(1, len(word)):
       #The corrupted signal are this character and the character preceding
-      corruptLetters = word[i-1:i+1] 
+      corruptLetters = word[i-1:i+1]
       #The correct signal is just the preceding character
       correctLetters = corruptLetters[:-1]
 
       #The corrected word deletes character i (and lacks the start symbol)
       correction = "%s%s" % (word[1:i], word[i+1:])
       ret.append(Edit(correction, corruptLetters, correctLetters))
-      
+
     return ret
 
   def insertEdits(self, word):
     """Returns a list of edits of 1-insert distance words and rules used to generate them."""
-    # TODO: write this
-    # Tip: you might find EditModel.ALPHABET helpful
-    # Tip: If inserting the letter 'a' as the second character in the word 'test', the corrupt
-    #      signal is 't' and the correct signal is 'ta'. See slide 17 of the noisy channel model.
+    if len(word) <= 0:
+      return []
+
     word = "<" + word # append start token
-    return []
+    ret = []
+    for i in xrange(len(word)):
+        corruptLetter = word[i]
+        #Append every letter in the alphabet to current character
+        for letter in xrange(len(EditModel.ALPHABET)):
+            correctLetters = corruptLetter + EditModel.ALPHABET[letter]
+
+            #The corrected word replaces i with i + new letter (and lacks the start symbol)
+            start_string = correctLetters[1] if i == 0 else word[1:i] + correctLetters
+            correction = "%s%s" % (start_string, word[i+1:])
+            ret.append(Edit(correction, corruptLetter, correctLetters))
+
+    return ret
 
   def transposeEdits(self, word):
     """Returns a list of edits of 1-transpose distance words and rules used to generate them."""
@@ -96,7 +107,7 @@ class EditModel(object):
     wordTotal  = 0
     for edit in self.edits(misspelling):
       if edit.editedWord != misspelling and edit.editedWord in self.vocabulary and edit.rule() in self.editCounts:
-        ruleMass = self.editCounts[edit.rule()] 
+        ruleMass = self.editCounts[edit.rule()]
         wordTotal += ruleMass
         wordCounts[edit.editedWord] += ruleMass
 
