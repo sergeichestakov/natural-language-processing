@@ -78,10 +78,17 @@ class EditModel(object):
 
   def transposeEdits(self, word):
     """Returns a list of edits of 1-transpose distance words and rules used to generate them."""
-    # TODO: write this
-    # Tip: If tranposing letters 'te' in the word 'test', the corrupt signal is 'te'
-    #      and the correct signal is 'et'. See slide 17 of the noisy channel model.
-    return []
+    if len(word) <= 0:
+      return []
+
+    ret = []
+    for i in xrange(len(word) - 1): #For every character except the last one
+        corruptLetters = word[i:i+2] #Current character and the next
+        correctLetters = corruptLetters[1] + corruptLetters[0] #Swap
+        correction = "%s%s%s" % (word[:i], correctLetters, word[i+2:])
+
+        ret.append(Edit(correction, corruptLetters, correctLetters))
+    return ret
 
   def replaceEdits(self, word):
     """Returns a list of edits of 1-replace distance words and rules used to generate them."""
