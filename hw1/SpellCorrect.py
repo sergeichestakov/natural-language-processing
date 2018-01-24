@@ -35,17 +35,27 @@ class SpellCorrect:
 
     bestSentence = sentence[:] #copy of sentence
     bestScore = float('-inf')
-    
+
     for i in xrange(1, len(sentence) - 1): #ignore <s> and </s>
-      # TODO: select the maximum probability sentence here, according to the noisy channel model.
-      # Tip: self.editModel.editProbabilities(word) gives edits and log-probabilities according to your edit model.
-      #      You should iterate through these values instead of enumerating all edits.
-      # Tip: self.languageModel.score(trialSentence) gives log-probability of a sentence
-      pass
+      word = sentence[i]
+      probabilities = self.editModel.editProbabilities(word)
+
+      #enumerate through all possible probabilities of a word
+      for pos in xrange(len(probabilities)):
+
+          #try out a new sentence with a different word and compute the score
+          correction, editProbability = probabilities[pos]
+          newSentence = sentence[:]
+          newSentence[i] = correction
+          score = self.languageModel.score(newSentence) + editProbability
+
+          if score > bestScore:
+              bestSentence = newSentence
+              bestScore = score
 
     return bestSentence
 
-  def evaluate(self, corpus):  
+  def evaluate(self, corpus):
     """Tests this speller on a corpus, returns a SpellingResult"""
     numCorrect = 0
     numTotal = 0
@@ -60,7 +70,7 @@ class SpellCorrect:
       numTotal += 1
     return SpellingResult(numCorrect, numTotal)
 
-  def correctCorpus(self, corpus): 
+  def correctCorpus(self, corpus):
     """Corrects a whole corpus, returns a JSON representation of the output."""
     string_list = [] # we will join these with commas,  bookended with []
     sentences = corpus.corpus
@@ -82,7 +92,7 @@ def main():
   devPath = 'data/tagged-dev.dat'
   devCorpus = Corpus(devPath)
 
-  print 'Unigram Language Model: ' 
+  print 'Unigram Language Model: '
   unigramLM = UnigramModel(trainingCorpus)
   unigramSpell = SpellCorrect(unigramLM, trainingCorpus)
   unigramOutcome = unigramSpell.evaluate(devCorpus)
@@ -91,10 +101,10 @@ def main():
   print 'Uniform Language Model: '
   uniformLM = UniformModel(trainingCorpus)
   uniformSpell = SpellCorrect(uniformLM, trainingCorpus)
-  uniformOutcome = uniformSpell.evaluate(devCorpus) 
+  uniformOutcome = uniformSpell.evaluate(devCorpus)
   print str(uniformOutcome)
 
-  print 'Smooth Unigram Language Model: ' 
+  print 'Smooth Unigram Language Model: '
   smoothUnigramLM = SmoothUnigramModel(trainingCorpus)
   smoothUnigramSpell = SpellCorrect(smoothUnigramLM, trainingCorpus)
   smoothUnigramOutcome = smoothUnigramSpell.evaluate(devCorpus)
