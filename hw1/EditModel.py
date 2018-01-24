@@ -92,11 +92,21 @@ class EditModel(object):
 
   def replaceEdits(self, word):
     """Returns a list of edits of 1-replace distance words and rules used to generate them."""
-    # TODO: write this
-    # Tip: you might find EditModel.ALPHABET helpful
-    # Tip: If replacing the letter 'e' with 'q' in the word 'test', the corrupt signal is 'e'
-    #      and the correct signal is 'q'. See slide 17 of the noisy channel model.
-    return []
+    if len(word) <= 0:
+      return []
+
+    ret = []
+    for i in xrange(len(word)):
+        corruptLetter = word[i]
+        #Append every letter in the alphabet to current character
+        for letter in xrange(len(EditModel.ALPHABET)):
+            correctLetter = EditModel.ALPHABET[letter]
+
+            if correctLetter != corruptLetter:
+                correction = "%s%s%s" % (word[:i], correctLetter, word[i+1:])
+                ret.append(Edit(correction, corruptLetter, correctLetter))
+
+    return ret
 
   def edits(self, word):
     """Returns a list of tuples of 1-edit distance words and rules used to generate them, e.g. ("test", "te|et")"""
