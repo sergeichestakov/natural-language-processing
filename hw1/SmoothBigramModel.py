@@ -30,11 +30,12 @@ class SmoothBigramModel:
     """
     score = 0.0
     prevWord = None
+    vocab = len(self.words)
     for token in sentence:
       occurances = self.table[prevWord][token]
       countPrev = self.unigramCounts[prevWord]
 
-      probability = float(occurances) / (float(countPrev) / len(self.words))
+      probability = float(occurances) / (float(countPrev) / vocab)
 
       if probability > 0:
         score += math.log(probability)
