@@ -1,14 +1,13 @@
 import math, collections
 from collections import defaultdict
 
+#This class implements Weighted interpolation by using a Bigram and Unigram model in conjunction
 class CustomModel:
 
-  DISCOUNT = 0.4
-  INTERPOLATION = 0.1
   def __init__(self, corpus):
     """Initial custom language model and structures needed by this model"""
-    self.unigramCounts = defaultdict(lambda: 1)
-    self.table = defaultdict(lambda: defaultdict(lambda: 1))
+    self.unigramCounts = defaultdict(int)
+    self.table = defaultdict(lambda: defaultdict(int))
     self.words = set([])
     self.total = 0
     self.train(corpus)
@@ -37,20 +36,21 @@ class CustomModel:
       occurances = self.table[prevWord][token]
       countPrev = self.unigramCounts[prevWord]
 
-      #bigram = float(occurances - CustomModel.DISCOUNT) / (float(countPrev) / vocab)
+      #Calculate bigram probability
+      probability = float(occurances) / (float(countPrev) + vocab)
 
-      unigramCount = self.unigramCounts[token]
-      #unigram = float(count) / float(self.total)
+      #Give more weight to Bigram depending on how common it is
+      interpolation = float(occurances) / float(occurances + 1)
 
-      interpolation = float(occurances) / float(occurances + CustomModel.INTERPOLATION)
-      
-      score += math.log(interpolation * (occurances - CustomModel.DISCOUNT))
-      score -= math.log(float(countPrev) / vocab)
+      #Check for bigram first
+      if probability > 0:
+        score += math.log(interpolation * probability)
 
-      if unigramCount > 0:
-        score += math.log((1 - interpolation) * unigramCount)
+      #Add unigram to score
+      count = self.unigramCounts[token]
+      if count > 0:
+        score += math.log((1 - interpolation) * count)
         score -= math.log(self.total)
-      #score += CustomModel.INTERPOLATION * unigram
 
       prevWord = token
-    return score
+    return abs(score)
