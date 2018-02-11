@@ -1,0 +1,23 @@
+Entire corpus (39832 lines):
+error rate by word:      0.0540917815389984 (2170 errors out of 40117)
+error rate by sentence:  0.655882352941176 (1115 errors out of 1700)
+
+1000 lines:
+error rate by word:      0.281651170326794 (11299 errors out of 40117)
+error rate by sentence:  0.948235294117647 (1612 errors out of 1700)
+
+5000 lines:
+error rate by word:      0.108258344342797 (4343 errors out of 40117)
+error rate by sentence:  0.8 (1360 errors out of 1700)
+
+10000 lines:
+error rate by word:      0.0814367973676995 (3267 errors out of 40117)
+error rate by sentence:  0.749411764705882 (1274 errors out of 1700)
+
+20000 lines:
+error rate by word:      0.0655831692300023 (2631 errors out of 40117)
+error rate by sentence:  0.703529411764706 (1196 errors out of 1700)
+
+30000 lines:
+error rate by word:      0.0571827404840841 (2294 errors out of 40117)
+error rate by sentence:  0.667647058823529 (1135 errors out of 1700)
