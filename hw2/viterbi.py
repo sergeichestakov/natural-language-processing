@@ -36,26 +36,26 @@ This part parses the my.hmm file you have generated and obtain the transition an
 """
 with open(hmmfile) as hmmfile:
     for line in hmmfile.read().splitlines():
-        trans_reg = 'trans\s+(\S+)\s+(\S+)\s+(\S+)'
+        trans_reg = 'trans\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)'
         emit_reg = 'emit\s+(\S+)\s+(\S+)\s+(\S+)'
         trans_match = re.match(trans_reg, line)
         emit_match = re.match(emit_reg, line)
         if trans_match:
-            qq, q, p = trans_match.groups()
+            prevprev, prev, curr, probability = trans_match.groups()
             # creating an entry in trans with the POS tag pair
-            # e.g. (init, NNP) = log(probability for seeing that transition)
-            trans[(qq, q)] = math.log(float(p))
+            # e.g. (init, init, NNP) = log(probability for seeing that transition)
+            trans[(prevprev, prev, curr)] = math.log(float(probability))
             # add the encountered POS tags to set
-            tags.update([qq, q])
+            tags.update([prevprev, prev, curr])
         elif emit_match:
-            q, w, p = emit_match.groups()
+            tag, word, probability = emit_match.groups()
             # creating an entry in emit with the tag and word pair
             # e.g. (NNP, "python") = log(probability for seeing that word with that tag)
-            emit[(q, w)] = math.log(float(p))
+            emit[(tag, word)] = math.log(float(probability))
             # adding the word to encountered words
-            voc[w] = 1
+            voc[word] = 1
             # add the encountered POS tags to set
-            tags.update([q])
+            tags.update([tag])
         else:
             #print 'no'
             pass
@@ -68,53 +68,59 @@ with open(inputfile) as inputfile:
         line = line.split(' ')
         # initialize pi.
         # i.e. set pi(0, *, *) = 1 from slides
-        pi = {(0, INIT_STATE): 0.0} # 0.0 because using logs
+        # Format is (k, u, v) = (index, prevtag, currtag)
+        pi = {(0, INIT_STATE, INIT_STATE): 0.0} # 0.0 because using logs
         bp = {} # backpointers
 
         # for each word in sentence and their index
-        for k, word in enumerate(line):
-            k = k + 1
+        for index, word in enumerate(line):
+            index = index + 1
             if word not in voc:
                 # change unseen words into OOV, since OOV is assigned a score in train_hmm. This will give these unseen words a score instead of a mismatch.
                 word = OOV_SYMBOL
-            for u, v in itertools.product(tags, tags): #python nested for loop
+            for prevprev, prev, curr in itertools.product(tags, tags, tags): #python nested for loop
                 # i.e. the first bullet point from the slides.
                 # Calculate the scores (p) for each possible combinations of (u, v)
-                if (v, u) in trans and (u, word) in emit and (k - 1, v) in pi:
-                    p = pi[(k - 1, v)] + trans[(v, u)] + emit[(u, word)]
-                    if (k, u) not in pi or p > pi[(k, u)]:
-                        # here, fine the max of all the calculated p, update it in the pi dictionary
-                        pi[(k, u)] = p
+                if (prevprev, prev, curr) in trans and (curr, word) in emit and (index - 1, prevprev, prev) in pi:
+                    probability = pi[(index - 1, prevprev, prev)] + trans[(prevprev, prev, curr)] + emit[(curr, word)]
+                    if (index, prev, curr) not in pi or probability > pi[(index, prev, curr)]:
+                        # here, find the max of all the calculated p, update it in the pi dictionary
+                        pi[(index, prev, curr)] = probability
                         # also keeping track of the backpointer
-                        bp[(k, u)] = v
+                        bp[(index, prev, curr)] = prevprev
 
         # second bullet point from the slides. Taking the case for the last word. Find the corrsponding POS tag for that word so we can then start the backtracing.
         foundgoal = False
         goal = float('-inf')
         tag = INIT_STATE
-        for v in tags:
-            # You want to try each (tag, FINAL_STATE) pair for the last word and find which one has max p. That will be the tag you choose.
-            if (v, FINAL_STATE) in trans and (len(line), v) in pi:
-                p = pi[(len(line), v)] + trans[(v, FINAL_STATE)]
-                if not foundgoal or p > goal:
+        before_tag = INIT_STATE
+
+        for prev, curr in itertools.product(tags, tags):
+            # You want to try each (prevtag, tag, FINAL_STATE) triple for the last word and find which one has max p. That will be the tag you choose.
+            if (prev, curr, FINAL_STATE) in trans and (len(line), prev, curr) in pi:
+                probability = pi[(len(line), prev, curr)] + trans[(prev, curr, FINAL_STATE)]
+                if not foundgoal or probability > goal:
                     # finding tag with max p
-                    goal = p
+                    goal = probability
                     foundgoal = True
-                    tag = v
+                    tag = curr
+                    before_tag = prev
+
 
         if foundgoal:
-            # y is the sequence of final chosen tags
-            y = []
-            for i in xrange(len(line), 1, -1): #counting from the last word
-                # bp[(i, tag)] gives you the tag for word[i - 1].
+            final_tags = []
+            for index in xrange(len(line) - 2, 1, -1): #start, stop, and step
+                # bp[(index,prevtag, tag)] gives you the tag for word[index - 1].
                 # we use that and traces through the tags in the sentence.
-                y.append(bp[(i, tag)])
-                tag = bp[(i, tag)]
+                final_tags.append(bp[(index + 2, before_tag, tag)])
+                before = before_tag
+                before_tag = bp[(index + 2, before_tag, tag)]
+                tag = before
 
-            # y is appened last tag first. Reverse it.
-            y.reverse()
+            # final_tags is appened last tag first. Reverse it.
+            final_tags.reverse()
             # print the final output
-            print ' '.join(y)
+            print ' '.join(final_tags)
         else:
             # append blank line if something fails so that each sentence is still printed on the correct line.
             print '\n'

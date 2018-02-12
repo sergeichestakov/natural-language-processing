@@ -20,12 +20,13 @@ OOV_WORD="OOV"
 INIT_STATE="init"
 FINAL_STATE="final"
 
-TAGSET = ['#', '$', "''", ',', '-LRB-', '-RRB-', '.', ':', 'CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS', 'LS', 'MD', 'NN', 'NNP', 'NNPS', 'NNS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', 'RBR', 'RBS', 'RP', 'SYM', 'TO', 'UH', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB', '``']
+#TAGSET = ['#', '$', "''", ',', '-LRB-', '-RRB-', '.', ':', 'CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS', 'LS', 'MD', 'NN', 'NNP', 'NNPS', 'NNS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', 'RBR', 'RBS', 'RP', 'SYM', 'TO', 'UH', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB', '``']
 
-emissions={}
-transitions={}
-transitionsTotal=defaultdict(defaultdict(int))
-emissionsTotal=defaultdict(defaultdict(int))
+emissions=defaultdict(lambda: defaultdict(int)) #2D dict of tag-token count
+emissionsTotal=defaultdict(int) #Dict of total tag count
+
+transitions=defaultdict(lambda: defaultdict(lambda: defaultdict(int))) #Trigram count of current tag and previous two
+transitionsTotal=defaultdict(lambda: defaultdict(int)) #Bigram count of previous tag and one before it
 
 with open(TAG_FILE) as tagFile, open(TOKEN_FILE) as tokenFile:
 	for tagString, tokenString in izip(tagFile, tokenFile):
@@ -34,7 +35,7 @@ with open(TAG_FILE) as tagFile, open(TOKEN_FILE) as tokenFile:
 		tokens=re.split("\s+", tokenString.rstrip())
 		pairs=zip(tags, tokens)
 
-        prevprevtag=INIT_STATE
+		prevprevtag=INIT_STATE
 		prevtag=INIT_STATE
 
 		for (tag, token) in pairs:
@@ -49,31 +50,28 @@ with open(TAG_FILE) as tagFile, open(TOKEN_FILE) as tokenFile:
 				vocab[token]=1
 				token=OOV_WORD
 
-			if tag not in emissions:
-				emissions[tag]=defaultdict(int)
-			if prevtag not in transitions:
-				transitions[prevtag]=defaultdict(int)
-
 			# increment the emission/transition observation
 			emissions[tag][token]+=1
 			emissionsTotal[tag]+=1
 
-			transitions[prevtag][tag]+=1
-			transitionsTotal[prevtag]+=1
+			transitions[prevprevtag][prevtag][tag]+=1
+			transitionsTotal[prevprevtag][prevtag]+=1
 
 			prevprevtag=prevtag
 			prevtag=tag
 
 		# don't forget the stop probability for each sentence
-		if prevtag not in transitions:
-			transitions[prevtag]=defaultdict(int)
+		#if prevtag not in transitions:
+		#	transitions[prevtag]=defaultdict(int)
 
-		transitions[prevtag][FINAL_STATE]+=1
-		transitionsTotal[prevtag]+=1
+		transitions[prevprevtag][prevtag][FINAL_STATE]+=1
+		transitionsTotal[prevprevtag][prevtag]+=1
 
-for prevtag in transitions:
-	for tag in transitions[prevtag]:
-		print "trans %s %s %s" % (prevtag, tag, float(transitions[prevtag][tag]) / transitionsTotal[prevtag])
+for prevprevtag in transitions:
+	for prevtag in transitions[prevprevtag]: 
+		for tag in transitions[prevprevtag][prevtag]:
+			print "trans %s %s %s %s" % (prevprevtag, prevtag, tag, float(transitions[prevprevtag][prevtag][tag]) / transitionsTotal[prevprevtag][prevtag])
+
 
 for tag in emissions:
 	for token in emissions[tag]:
