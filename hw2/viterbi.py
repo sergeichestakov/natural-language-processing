@@ -3,7 +3,10 @@
 # Runs the Viterbi algorithm (no tricks other than logmath!), given an
 # HMM, on sentences, and outputs the best state path.
 
-# Translated to python by Austin Chau
+# Sergei Chestakov
+# 2/11/18
+# Trigram implementation of Viterbi algorithm ported to Python
+
 
 import sys
 import re
@@ -11,13 +14,6 @@ import math
 import itertools
 from pprint import pprint
 from collections import defaultdict
-
-"""
-This is a translation of viterbi.pl into python.
-Both are essentially a bigram hmm viterbi, which, with modifications, should create the trigram hmm.
-
-Note: There could be a bug in the code that leads to a different result for sentence on line 543 when compared with the original perl script.
-"""
 
 INIT_STATE = 'init'
 FINAL_STATE = 'final'
@@ -57,7 +53,6 @@ with open(hmmfile) as hmmfile:
             # add the encountered POS tags to set
             tags.update([tag])
         else:
-            #print 'no'
             pass
 
 """
@@ -108,9 +103,9 @@ with open(inputfile) as inputfile:
 
 
         if foundgoal:
-            final_tags = []
-            for index in xrange(len(line) - 2, 1, -1): #start, stop, and step
-                # bp[(index,prevtag, tag)] gives you the tag for word[index - 1].
+            final_tags = [before_tag]
+            for index in xrange(len(line) - 2, 0, -1): #start, stop, and step
+                # bp[(index,prevtag, tag)] gives you the tag for word[index - 2].
                 # we use that and traces through the tags in the sentence.
                 final_tags.append(bp[(index + 2, before_tag, tag)])
                 before = before_tag
@@ -123,4 +118,5 @@ with open(inputfile) as inputfile:
             print ' '.join(final_tags)
         else:
             # append blank line if something fails so that each sentence is still printed on the correct line.
-            print '\n'
+            #print '\n'
+            print ' '.join([])
