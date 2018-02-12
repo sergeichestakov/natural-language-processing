@@ -6,7 +6,7 @@
 # Sergei Chestakov
 # 2/11/18
 # Trigram implementation of Viterbi algorithm ported to Python
-
+# Usage: ./viterbi.py my.hmm ptb.22.txt > my.out
 
 import sys
 import re
@@ -19,8 +19,8 @@ INIT_STATE = 'init'
 FINAL_STATE = 'final'
 OOV_SYMBOL = 'OOV'
 
-hmmfile = 'my.hmm'
-inputfile = 'ptb.22.txt'
+hmmfile=sys.argv[1]
+inputfile=sys.argv[2]
 
 tags = set() # i.e. K in the slides, a set of unique POS tags
 trans = {} # transisions
@@ -118,5 +118,4 @@ with open(inputfile) as inputfile:
             print ' '.join(final_tags)
         else:
             # append blank line if something fails so that each sentence is still printed on the correct line.
-            #print '\n'
-            print ' '.join([])
+            print ''

@@ -20,8 +20,6 @@ OOV_WORD="OOV"
 INIT_STATE="init"
 FINAL_STATE="final"
 
-#TAGSET = ['#', '$', "''", ',', '-LRB-', '-RRB-', '.', ':', 'CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS', 'LS', 'MD', 'NN', 'NNP', 'NNPS', 'NNS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', 'RBR', 'RBS', 'RP', 'SYM', 'TO', 'UH', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB', '``']
-
 emissions=defaultdict(lambda: defaultdict(int)) #2D dict of tag-token count
 emissionsTotal=defaultdict(int) #Dict of total tag count
 
@@ -60,17 +58,14 @@ with open(TAG_FILE) as tagFile, open(TOKEN_FILE) as tokenFile:
 			prevprevtag=prevtag
 			prevtag=tag
 
-		# don't forget the stop probability for each sentence
-		#if prevtag not in transitions:
-		#	transitions[prevtag]=defaultdict(int)
-
 		transitions[prevprevtag][prevtag][FINAL_STATE]+=1
 		transitionsTotal[prevprevtag][prevtag]+=1
 
 for prevprevtag in transitions:
-	for prevtag in transitions[prevprevtag]: 
+	for prevtag in transitions[prevprevtag]:
 		for tag in transitions[prevprevtag][prevtag]:
-			print "trans %s %s %s %s" % (prevprevtag, prevtag, tag, float(transitions[prevprevtag][prevtag][tag]) / transitionsTotal[prevprevtag][prevtag])
+			probability = float(transitions[prevprevtag][prevtag][tag]) / transitionsTotal[prevprevtag][prevtag]
+			print "trans %s %s %s %s" % (prevprevtag, prevtag, tag, probability)
 
 
 for tag in emissions:

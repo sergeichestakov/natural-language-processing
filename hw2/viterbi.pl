@@ -9,8 +9,8 @@
 
 # The hmm-file should include two kinds of lines.  One is a transition:
 # trans Q R P
-# where Q and R are whitespace-free state names ("from" and "to," 
-# respectively) and P is a probability.  The other kind of line is an 
+# where Q and R are whitespace-free state names ("from" and "to,"
+# respectively) and P is a probability.  The other kind of line is an
 # emission:
 # emit Q S P
 # where Q is a whitespace-free state name, S is a whitespace-free
@@ -70,8 +70,8 @@ while(<>) { # read in one sentence at a time
 	foreach $q (keys %States) { # consider each possible current state
 	    foreach $qq (keys %States) { # each possible previous state
 		if(defined $A{$qq}{$q}  # only consider "non-zeros"
-		   and defined $B{$q}{$w[$i]} 
-		   and defined $V{$i - 1}{$qq}) 
+		   and defined $B{$q}{$w[$i]}
+		   and defined $V{$i - 1}{$qq})
 		{
 		    $v = $V{$i - 1}{$qq} + $A{$qq}{$q} + $B{$q}{$w[$i]};
 		    if(!(defined $V{$i}{$q}) or $v > $V{$i}{$q}) {
@@ -98,7 +98,7 @@ while(<>) { # read in one sentence at a time
 	    }
 	}
     }
-    
+
     # this is the backtracking step.
     if($foundgoal) {
 	@t = ();
