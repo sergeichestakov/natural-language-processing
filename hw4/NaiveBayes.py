@@ -35,26 +35,13 @@ class NaiveBayes:
         #Custom data structures for training and clasifying
         self.posDocCount = 0.0
         self.totalDocCount = 0.0
-        self.posFrequency = defaultdict(lambda: 1.0) #Add one smoothing
-        self.negFrequency = defaultdict(lambda: 1.0)
+        self.posFrequency = defaultdict(lambda: 2.0) #Laplace smoothing
+        self.negFrequency = defaultdict(lambda: 2.0)
         self.posWordCount = 0.0
         self.negWordCount = 0.0
 
         self.posWordSet = set()
         self.negWordSet = set()
-
-        # TODO
-        # Implement a multinomial naive bayes classifier and a naive bayes classifier with boolean features. The flag
-        # naiveBayesBool is used to signal to your methods that boolean naive bayes should be used instead of the usual
-        # algorithm that is driven on feature counts. Remember the boolean naive bayes relies on the presence and
-        # absence of features instead of feature counts.
-
-        # When the best model flag is true, use your new features and or heuristics that are best performing on the
-        # training and test set.
-
-        # If any one of the flags filter stop words, boolean naive bayes and best model flags are high, the other two
-        # should be off. If you want to include stop word removal or binarization in your best performing model, you
-        # will need to write the code accordingly.
 
     def classify(self, words):
         """
@@ -66,11 +53,11 @@ class NaiveBayes:
         probPos = -log(self.posDocCount / self.totalDocCount)
         probNeg = -log( (self.totalDocCount - self.posDocCount) / self.totalDocCount)
 
-        vocab = len(self.posWordSet) + len(self.negWordSet)
+        vocab = self.posWordCount + self.negWordCount if self.naiveBayesBool else len(self.posWordSet) + len(self.negWordSet)
 
         for word in words:
-            probPosWord = -log( (self.posFrequency[word]) / (self.posWordCount + vocab) )
-            probNegWord = -log( (self.negFrequency[word]) / (self.negWordCount + vocab) )
+            probPosWord = -log( (self.posFrequency[word]) / (self.posWordCount + 2 * vocab) )
+            probNegWord = -log( (self.negFrequency[word]) / (self.negWordCount + 2 * vocab) )
 
             probPos += probPosWord
             probNeg += probNegWord
@@ -89,16 +76,30 @@ class NaiveBayes:
             self.posDocCount += 1
 
         self.totalDocCount += 1
+        docSet = set()
 
         for word in words:
             if classifier == 'pos':
-                self.posWordCount += 1
-                self.posFrequency[word] += 1
+                if self.naiveBayesBool:
+                    if word not in docSet:
+                        self.posWordCount += 1
+                        docSet.add(word)
+                        self.posFrequency[word] += 1
+                else:
+                    self.posWordCount += 1
+                    self.posFrequency[word] += 1
                 self.posWordSet.add(word)
             else:
-                self.negWordCount += 1
-                self.negFrequency[word] += 1
+                if self.naiveBayesBool:
+                    if word not in docSet:
+                        self.negWordCount +=1
+                        docSet.add(word)
+                        self.negFrequency[word] += 1
+                else:
+                    self.negWordCount += 1
+                    self.negFrequency[word] += 1
                 self.negWordSet.add(word)
+
 
     def readFile(self, fileName):
         """
