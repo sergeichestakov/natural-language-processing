@@ -1,8 +1,9 @@
 import sys
 import getopt
 import os
-import math
 import operator
+from math import log
+from collections import defaultdict
 
 class NaiveBayes:
     class TrainSplit:
@@ -31,6 +32,17 @@ class NaiveBayes:
         self.naiveBayesBool = False
         self.numFolds = 10
 
+        #Custom data structures for training and clasifying
+        self.posDocCount = 0.0
+        self.totalDocCount = 0.0
+        self.posFrequency = defaultdict(lambda: 1.0) #Add one smoothing
+        self.negFrequency = defaultdict(lambda: 1.0)
+        self.posWordCount = 0.0
+        self.negWordCount = 0.0
+
+        self.posWordSet = set()
+        self.negWordSet = set()
+
         # TODO
         # Implement a multinomial naive bayes classifier and a naive bayes classifier with boolean features. The flag
         # naiveBayesBool is used to signal to your methods that boolean naive bayes should be used instead of the usual
@@ -51,22 +63,42 @@ class NaiveBayes:
         if self.stopWordsFilter:
             words = self.filterStopWords(words)
 
-        # TODO
-        # classify a list of words and return the 'pos' or 'neg' classification
-        # Write code here
+        probPos = -log(self.posDocCount / self.totalDocCount)
+        probNeg = -log( (self.totalDocCount - self.posDocCount) / self.totalDocCount)
 
-        return 'pos'
+        vocab = len(self.posWordSet) + len(self.negWordSet)
+
+        for word in words:
+            probPosWord = -log( (self.posFrequency[word]) / (self.posWordCount + vocab) )
+            probNegWord = -log( (self.negFrequency[word]) / (self.negWordCount + vocab) )
+
+            probPos += probPosWord
+            probNeg += probNegWord
+
+        if probPos < probNeg:
+            return 'pos'
+        else:
+            return 'neg'
 
     def addDocument(self, classifier, words):
         """
         Train your model on a document with label classifier (pos or neg) and words (list of strings). You should
         store any structures for your classifier in the naive bayes class. This function will return nothing
         """
-        # TODO
-        # Train model on document with label classifiers and words
-        # Write code here
+        if classifier == 'pos':
+            self.posDocCount += 1
 
-        pass
+        self.totalDocCount += 1
+
+        for word in words:
+            if classifier == 'pos':
+                self.posWordCount += 1
+                self.posFrequency[word] += 1
+                self.posWordSet.add(word)
+            else:
+                self.negWordCount += 1
+                self.negFrequency[word] += 1
+                self.negWordSet.add(word)
 
     def readFile(self, fileName):
         """
