@@ -39,16 +39,17 @@ class NaiveBayes:
         self.negFrequency = defaultdict(lambda: 2.0)
         self.posWordCount = 0.0
         self.negWordCount = 0.0
+        self.posWordSet = set()
+        self.negWordSet = set()
 
-        self.posBigram = defaultdict(lambda: defaultdict(lambda: 1.0))
+        #Data structures for highly optimized model
+        self.posBigram = defaultdict(lambda: defaultdict(lambda: 1.0)) #Bigram counts and interpolation
         self.negBigram = defaultdict(lambda: defaultdict(lambda: 1.0))
         self.interpolation = 0.05
 
         self.negateWords = ["not", "didn't", "isn't", "no", "never", "didnt", "isnt"] #Negation in best model
         self.punctuation = ['.', ',', '!', '?', '-']
-
-        self.posWordSet = set()
-        self.negWordSet = set()
+        self.bonusWords = ['very', 'really', 'exceptionally', 'extremely', 'hugely', 'truly'] #Bonus words give more weight to the following word
 
     def classify(self, words):
         """
@@ -57,35 +58,55 @@ class NaiveBayes:
         if self.stopWordsFilter:
             words = self.filterStopWords(words)
 
+        #Probability that a document is positive or negative based on ratio of docs in training set
         probPos = -log(self.posDocCount / self.totalDocCount)
         probNeg = -log( (self.totalDocCount - self.posDocCount) / self.totalDocCount)
 
-        vocab = self.posWordCount + self.negWordCount if self.naiveBayesBool else len(self.posWordSet) + len(self.negWordSet)
+        vocab = len(self.posWordSet.union(self.negWordSet))
+        if self.naiveBayesBool:
+            vocab = self.posWordCount + self.negWordCount
+        elif self.bestModel:
+            vocab = len(self.posWordSet) + len(self.negWordSet)
         negateFlag = False
-        prevWord = '__START__'
+        bonus = False
+        prevWord = '__START__' #Start of sentence in bigram
 
         for word in words:
             pos = self.posFrequency[word]
             neg = self.negFrequency[word]
 
-            if self.bestModel:
+            if self.bestModel: #Negate in best model
                 if word in self.negateWords:
                     negateFlag = True
                 if negateFlag and word in self.punctuation:
                     negateFlag = False
                 if negateFlag:
                     word = 'NOT_' + word
+
+                #Implement weighted interpolation for bigram
                 pos = (self.interpolation * self.posFrequency[word] + (1 - self.interpolation) * self.posBigram[prevWord][word])
                 neg = (self.interpolation * self.negFrequency[word] + (1 - self.interpolation) * self.negBigram[prevWord][word])
 
+            #Calculate and add probability of each word given the category
             probPosWord = -log( pos / (self.posWordCount + 2 * vocab) )
             probNegWord = -log( neg / (self.negWordCount + 2 * vocab) )
+
+            if self.bestModel: #Increase weight of any word immediately following very, really, etc
+                if bonus:
+                    if probPosWord < probNegWord:
+                        probPosWord *= 0.9
+                    else:
+                        probNegWord *= 0.9
+                    bonus = False
+                if word in self.bonusWords:
+                    bonus = True
 
             probPos += probPosWord
             probNeg += probNegWord
 
             prevWord = word
 
+        #Smallest is most likely because we are adding -log
         if probPos < probNeg:
             return 'pos'
         else:
@@ -100,12 +121,12 @@ class NaiveBayes:
             self.posDocCount += 1
 
         self.totalDocCount += 1
-        docSet = set()
-        negateFlag = False
-        prevWord = '__START__'
+        docSet = set() #Avoid duplicates in binary naive bayes
+        negateFlag = False #Negate in best model
+        prevWord = '__START__' #Start of sentence in bigram model
 
         for word in words:
-            if self.bestModel:
+            if self.bestModel: #Implement negation in best model
                 if word in self.negateWords:
                     negateFlag = True
                 if negateFlag and word in self.punctuation:
@@ -115,17 +136,17 @@ class NaiveBayes:
 
             if classifier == 'pos':
                 if self.naiveBayesBool:
-                    if word not in docSet:
+                    if word not in docSet: #Check for duplicates
                         self.posWordCount += 1
                         docSet.add(word)
                         self.posFrequency[word] += 1
                 else:
                     self.posWordCount += 1
                     self.posFrequency[word] += 1
-                    if self.bestModel:
+                    if self.bestModel: #Keep track of bigram counts
                         self.posBigram[prevWord][word] += 1
                 self.posWordSet.add(word)
-            else:
+            else: #classifier is 'neg'
                 if self.naiveBayesBool:
                     if word not in docSet:
                         self.negWordCount +=1
