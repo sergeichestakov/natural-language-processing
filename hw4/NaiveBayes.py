@@ -40,6 +40,10 @@ class NaiveBayes:
         self.posWordCount = 0.0
         self.negWordCount = 0.0
 
+        self.posBigram = defaultdict(lambda: defaultdict(lambda: 1.0))
+        self.negBigram = defaultdict(lambda: defaultdict(lambda: 1.0))
+        self.interpolation = 0.05
+
         self.negateWords = ["not", "didn't", "isn't", "no", "never", "didnt", "isnt"] #Negation in best model
         self.punctuation = ['.', ',', '!', '?', '-']
 
@@ -58,20 +62,29 @@ class NaiveBayes:
 
         vocab = self.posWordCount + self.negWordCount if self.naiveBayesBool else len(self.posWordSet) + len(self.negWordSet)
         negateFlag = False
+        prevWord = '__START__'
 
         for word in words:
-            if self.bestModel and word in self.negateWords:
-                negateFlag = True
-            if negateFlag and word in self.punctuation:
-                negateFlag = False
-            if negateFlag:
-                word = 'NOT_' + word
+            pos = self.posFrequency[word]
+            neg = self.negFrequency[word]
 
-            probPosWord = -log( (self.posFrequency[word]) / (self.posWordCount + 2 * vocab) )
-            probNegWord = -log( (self.negFrequency[word]) / (self.negWordCount + 2 * vocab) )
+            if self.bestModel:
+                if word in self.negateWords:
+                    negateFlag = True
+                if negateFlag and word in self.punctuation:
+                    negateFlag = False
+                if negateFlag:
+                    word = 'NOT_' + word
+                pos = (self.interpolation * self.posFrequency[word] + (1 - self.interpolation) * self.posBigram[prevWord][word])
+                neg = (self.interpolation * self.negFrequency[word] + (1 - self.interpolation) * self.negBigram[prevWord][word])
+
+            probPosWord = -log( pos / (self.posWordCount + 2 * vocab) )
+            probNegWord = -log( neg / (self.negWordCount + 2 * vocab) )
 
             probPos += probPosWord
             probNeg += probNegWord
+
+            prevWord = word
 
         if probPos < probNeg:
             return 'pos'
@@ -89,14 +102,16 @@ class NaiveBayes:
         self.totalDocCount += 1
         docSet = set()
         negateFlag = False
+        prevWord = '__START__'
 
         for word in words:
-            if self.bestModel and word in self.negateWords:
-                negateFlag = True
-            if negateFlag and word in self.punctuation:
-                negateFlag = False
-            if negateFlag:
-                word = 'NOT_' + word
+            if self.bestModel:
+                if word in self.negateWords:
+                    negateFlag = True
+                if negateFlag and word in self.punctuation:
+                    negateFlag = False
+                if negateFlag:
+                    word = 'NOT_' + word
 
             if classifier == 'pos':
                 if self.naiveBayesBool:
@@ -107,6 +122,8 @@ class NaiveBayes:
                 else:
                     self.posWordCount += 1
                     self.posFrequency[word] += 1
+                    if self.bestModel:
+                        self.posBigram[prevWord][word] += 1
                 self.posWordSet.add(word)
             else:
                 if self.naiveBayesBool:
@@ -117,7 +134,11 @@ class NaiveBayes:
                 else:
                     self.negWordCount += 1
                     self.negFrequency[word] += 1
+                    if self.bestModel:
+                        self.negBigram[prevWord][word] += 1
                 self.negWordSet.add(word)
+
+            prevWord = word
 
 
     def readFile(self, fileName):
