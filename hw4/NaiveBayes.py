@@ -40,6 +40,9 @@ class NaiveBayes:
         self.posWordCount = 0.0
         self.negWordCount = 0.0
 
+        self.negateWords = ["not", "didn't", "isn't", "no", "never", "didnt", "isnt"] #Negation in best model
+        self.punctuation = ['.', ',', '!', '?', '-']
+
         self.posWordSet = set()
         self.negWordSet = set()
 
@@ -54,8 +57,16 @@ class NaiveBayes:
         probNeg = -log( (self.totalDocCount - self.posDocCount) / self.totalDocCount)
 
         vocab = self.posWordCount + self.negWordCount if self.naiveBayesBool else len(self.posWordSet) + len(self.negWordSet)
+        negateFlag = False
 
         for word in words:
+            if self.bestModel and word in self.negateWords:
+                negateFlag = True
+            if negateFlag and word in self.punctuation:
+                negateFlag = False
+            if negateFlag:
+                word = 'NOT_' + word
+
             probPosWord = -log( (self.posFrequency[word]) / (self.posWordCount + 2 * vocab) )
             probNegWord = -log( (self.negFrequency[word]) / (self.negWordCount + 2 * vocab) )
 
@@ -77,8 +88,16 @@ class NaiveBayes:
 
         self.totalDocCount += 1
         docSet = set()
+        negateFlag = False
 
         for word in words:
+            if self.bestModel and word in self.negateWords:
+                negateFlag = True
+            if negateFlag and word in self.punctuation:
+                negateFlag = False
+            if negateFlag:
+                word = 'NOT_' + word
+
             if classifier == 'pos':
                 if self.naiveBayesBool:
                     if word not in docSet:
